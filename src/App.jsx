@@ -51,28 +51,35 @@ export default function App() {
     const [movies, setMovies] = useState([]);
     const [watched, setWatched] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const query = "The Fragrant Flower Blooms with Dignity";
+    const [isError, setIsError] = useState("");
+    const tempQuery = "The Fragrant Flower Blooms with Dignitys";
 
     useEffect(() => {
         async function fetchMovies() {
             try {
                 setIsLoading(true);
                 const res = await fetch(
-                    `http://www.omdbapi.com/?apikey=${key}&s=${query}`
+                    `http://www.omdbapi.com/?apikey=${key}&s=${tempQuery}`
                 );
 
                 if (!res.ok) throw new Error("Something went Wrong");
 
                 const data = await res.json();
+
+                if (data.Response === "False")
+                    throw new Error("Movie not found nga");
+
+                setIsError("");
                 setIsLoading(false);
                 setMovies(data.Search);
             } catch (err) {
-                console.log(err.message);
+                setIsError(err.message);
+            } finally {
+                setIsLoading(false);
             }
         }
         fetchMovies();
     }, []);
-
     return (
         <>
             <Navbar>
@@ -81,9 +88,11 @@ export default function App() {
             </Navbar>
             <Main>
                 <Box>
-                    {isLoading ? (
-                        <Loader />
-                    ) : (
+                    {isLoading && <Loader />}
+
+                    {isError && <Message message={isError} />}
+
+                    {!isLoading && !isError && (
                         <RenderApiMovieBox movies={movies} />
                     )}
                 </Box>
@@ -94,6 +103,10 @@ export default function App() {
             </Main>
         </>
     );
+}
+
+function Message({ message }) {
+    return <p className="error">{message}</p>;
 }
 
 function Navbar({ children }) {
