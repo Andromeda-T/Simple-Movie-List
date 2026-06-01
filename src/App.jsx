@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+// 54d24107
 
 const tempMovieData = [
     {
@@ -44,10 +45,33 @@ const tempWatchedData = [
 
 const average = (arr) =>
     arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
+const key = "54d24107";
 
 export default function App() {
-    const [movies, setMovies] = useState(tempMovieData);
-    const [watched, setWatched] = useState(tempWatchedData);
+    const [movies, setMovies] = useState([]);
+    const [watched, setWatched] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const query = "The Fragrant Flower Blooms with Dignity";
+
+    useEffect(() => {
+        async function fetchMovies() {
+            try {
+                setIsLoading(true);
+                const res = await fetch(
+                    `http://www.omdbapi.com/?apikey=${key}&s=${query}`
+                );
+
+                if (!res.ok) throw new Error("Something went Wrong");
+
+                const data = await res.json();
+                setIsLoading(false);
+                setMovies(data.Search);
+            } catch (err) {
+                console.log(err.message);
+            }
+        }
+        fetchMovies();
+    }, []);
 
     return (
         <>
@@ -57,7 +81,11 @@ export default function App() {
             </Navbar>
             <Main>
                 <Box>
-                    <RenderApiMovieBox movies={movies} />
+                    {isLoading ? (
+                        <Loader />
+                    ) : (
+                        <RenderApiMovieBox movies={movies} />
+                    )}
                 </Box>
                 <Box>
                     <Summary watched={watched} />
@@ -106,7 +134,7 @@ function Summary({ watched }) {
             <div>
                 <p>
                     <span>#️⃣</span>
-                    <span>{watched.length} movies</span>
+                    <span>{watched?.length} movies</span>
                 </p>
                 <p>
                     <span>⭐️</span>
@@ -169,7 +197,7 @@ function Search() {
 function FoundMovies({ movies }) {
     return (
         <p className="num-results">
-            Found <strong>{movies.length}</strong> results
+            Found <strong>{movies?.length}</strong> results
         </p>
     );
 }
@@ -201,4 +229,8 @@ function Box({ children }) {
 
 function Main({ children }) {
     return <main className="main">{children}</main>;
+}
+
+function Loader() {
+    return <p className="loader">Loading ...</p>;
 }
