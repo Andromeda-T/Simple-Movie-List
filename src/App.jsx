@@ -1,47 +1,5 @@
 import { useEffect, useState } from "react";
-// 54d24107
-
-const tempMovieData = [
-    {
-        imdbID: "tt1375666",
-        Title: "Inception",
-        Year: "2010",
-        Poster: "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg"
-    },
-    {
-        imdbID: "tt0133093",
-        Title: "The Matrix",
-        Year: "1999",
-        Poster: "https://m.media-amazon.com/images/M/MV5BNzQzOTk3OTAtNDQ0Zi00ZTVkLWI0MTEtMDllZjNkYzNjNTc4L2ltYWdlXkEyXkFqcGdeQXVyNjU0OTQ0OTY@._V1_SX300.jpg"
-    },
-    {
-        imdbID: "tt6751668",
-        Title: "Parasite",
-        Year: "2019",
-        Poster: "https://m.media-amazon.com/images/M/MV5BYWZjMjk3ZTItODQ2ZC00NTY5LWE0ZDYtZTI3MjcwN2Q5NTVkXkEyXkFqcGdeQXVyODk4OTc3MTY@._V1_SX300.jpg"
-    }
-];
-
-const tempWatchedData = [
-    {
-        imdbID: "tt1375666",
-        Title: "Inception",
-        Year: "2010",
-        Poster: "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_SX300.jpg",
-        runtime: 148,
-        imdbRating: 8.8,
-        userRating: 10
-    },
-    {
-        imdbID: "tt0088763",
-        Title: "Back to the Future",
-        Year: "1985",
-        Poster: "https://m.media-amazon.com/images/M/MV5BZmU0M2Y1OGUtZjIxNi00ZjBkLTg1MjgtOWIyNThiZWIwYjRiXkEyXkFqcGdeQXVyMTQxNzMzNDI@._V1_SX300.jpg",
-        runtime: 116,
-        imdbRating: 8.5,
-        userRating: 9
-    }
-];
+import StarRating from "./StarRating";
 
 const average = (arr) =>
     arr.reduce((acc, cur, i, arr) => acc + cur / arr.length, 0);
@@ -54,6 +12,7 @@ export default function App() {
     const [watched, setWatched] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [isError, setIsError] = useState("");
+    const [selectedMovie, setSelectedMovie] = useState("");
 
     useEffect(() => {
         async function fetchMovies() {
@@ -70,8 +29,6 @@ export default function App() {
                 setIsLoading(false);
 
                 const data = await res.json();
-
-                console.log(data);
 
                 if (data.Response === "False") throw new Error(data.Error);
 
@@ -99,12 +56,24 @@ export default function App() {
                     {isError && <Message message={isError} />}
 
                     {!isLoading && !isError && (
-                        <RenderApiMovieBox movies={movies} />
+                        <RenderApiMovieBox
+                            setSelectedMovie={setSelectedMovie}
+                            movies={movies}
+                        />
                     )}
                 </Box>
                 <Box>
-                    <Summary watched={watched} />
-                    <MovieList watched={watched} />
+                    {!selectedMovie ? (
+                        <>
+                            <Summary watched={watched} />
+                            <MovieList watched={watched} />
+                        </>
+                    ) : (
+                        <SelctedMovie
+                            setSelectedMovie={setSelectedMovie}
+                            selectedMovie={selectedMovie}
+                        />
+                    )}
                 </Box>
             </Main>
         </>
@@ -124,11 +93,18 @@ function Navbar({ children }) {
     );
 }
 
-function RenderApiMovieBox({ movies }) {
+function RenderApiMovieBox({ movies, setSelectedMovie }) {
     return (
         <ul className="list">
             {movies?.map((movie) => (
-                <li key={movie.imdbID}>
+                <li
+                    onClick={() =>
+                        setSelectedMovie((selected) =>
+                            selected === movie.imdbID ? null : movie.imdbID
+                        )
+                    }
+                    key={movie.imdbID}
+                >
                     <img src={movie.Poster} alt={`${movie.Title} poster`} />
                     <h3>{movie.Title}</h3>
                     <div>
@@ -174,7 +150,7 @@ function Summary({ watched }) {
 
 function MovieList({ watched }) {
     return (
-        <ul className="list">
+        <ul className="list list-movies">
             {watched.map((movie) => (
                 <li key={movie.imdbID}>
                     <img src={movie.Poster} alt={`${movie.Title} poster`} />
@@ -250,4 +226,97 @@ function Main({ children }) {
 
 function Loader() {
     return <p className="loader">Loading ...</p>;
+}
+
+function SelctedMovie({ selectedMovie, setSelectedMovie }) {
+    const [movie, setmovie] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isError, setIsError] = useState("");
+
+    const {
+        Title: title,
+        Year: year,
+        Poster: poster,
+        Runtime: runtime,
+        imdbRating,
+        Plot: plot,
+        Released: released,
+        Actors: actors,
+        Director: director,
+        Genre: genre
+    } = movie;
+
+    useEffect(() => {
+        async function fetchMovies() {
+            try {
+                setIsError("");
+                setIsLoading(true);
+                const res = await fetch(
+                    `http://www.omdbapi.com/?apikey=${key}&i=${selectedMovie}`
+                );
+
+                if (!res.ok) throw new Error("Something went Wrong");
+                setIsLoading(false);
+
+                const data = await res.json();
+
+                if (data.Response === "False") throw new Error(data.Error);
+
+                setIsError("");
+                setmovie(data);
+                if (data.Response === "False") throw new Error(data.Error);
+            } catch (err) {
+                setIsError(err.message);
+            } finally {
+                setIsLoading(false);
+            }
+        }
+        fetchMovies();
+    }, [selectedMovie]);
+    return (
+        <>
+            {isLoading && <Loader />}
+            {isError && <Message message={isError} />}
+            {!isLoading && !isError && (
+                <div className="details">
+                    <header>
+                        <button
+                            onClick={() => setSelectedMovie(null)}
+                            className="btn-back"
+                        >
+                            &larr;
+                        </button>
+                        <img src={poster} alt={`poster of ${poster}`}></img>
+                        <div className="details-overview">
+                            <h2>{title}</h2>
+                            <p>
+                                {released} &bull; {runtime}
+                            </p>
+                            <p>{genre}</p>
+                            <p>
+                                <span>⭐</span>
+                                {imdbRating} IMDb Rating
+                            </p>
+                        </div>
+                    </header>
+                    <section>
+                        <div className="rating">
+                            <StarRating
+                                maxRating={10}
+                                size="25px"
+                                color="#fcc419"
+                                // message={["Terrible", "bad", "nice", "good", "perfect"]}
+                                defaultRating={1}
+                            />
+                        </div>
+                        <p>
+                            <em>{plot}</em>
+                        </p>
+                        <p>Starring {actors}</p>
+                        <p>Directed by {director}</p>
+                    </section>
+                </div>
+            )}
+        </>
+    );
 }
