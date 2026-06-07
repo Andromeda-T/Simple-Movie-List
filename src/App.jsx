@@ -15,6 +15,8 @@ export default function App() {
     const [isError, setIsError] = useState("");
 
     useEffect(() => {
+        const controller = new AbortController();
+
         async function fetchMovies() {
             try {
                 if (query.length < 3) throw new Error("Search for your movie");
@@ -22,7 +24,8 @@ export default function App() {
                 setIsError("");
                 setIsLoading(true);
                 const res = await fetch(
-                    `http://www.omdbapi.com/?apikey=${key}&s=${query}`
+                    `http://www.omdbapi.com/?apikey=${key}&s=${query}`,
+                    { signal: controller.signal }
                 );
 
                 if (!res.ok) throw new Error("Something went Wrong");
@@ -35,12 +38,16 @@ export default function App() {
                 setIsError("");
                 setMovies(data.Search);
             } catch (err) {
-                setIsError(err.message);
+                if (err.name !== "AbortError") {
+                    setIsError(err.message);
+                }
             } finally {
                 setIsLoading(false);
             }
         }
         fetchMovies();
+
+        return () => controller.abort();
     }, [query]);
 
     return (
@@ -293,7 +300,6 @@ function SelectedMovie({
                 const data = await res.json();
 
                 if (data.Response === "False") throw new Error(data.Error);
-                document.title = title;
 
                 setIsError("");
                 setMovie(data);
@@ -305,6 +311,26 @@ function SelectedMovie({
         }
         fetchMovies();
     }, [selectedMovie]);
+
+    useEffect(() => {
+        if (!title) return;
+
+        document.title = title;
+
+        return () => {
+            document.title = "usePopcorn";
+        };
+    }, [title]);
+
+    useEffect(() => {
+        const callBack = (e) => {
+            if (e.code === "Escape") {
+                setSelectedMovie(null);
+            }
+        };
+        document.addEventListener("keydown", callBack);
+        return () => document.removeEventListener("keydown", callBack);
+    }, [setSelectedMovie]);
 
     return (
         <>
