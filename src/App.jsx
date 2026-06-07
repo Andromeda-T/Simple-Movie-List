@@ -9,10 +9,19 @@ const key = "54d24107";
 export default function App() {
     const [query, setQuery] = useState("");
     const [movies, setMovies] = useState([]);
-    const [watched, setWatched] = useState([]);
+
+    const [watched, setWatched] = useState(function () {
+        const stored = localStorage.getItem("watched");
+        return stored ? JSON.parse(stored) : [];
+    });
+    
     const [isLoading, setIsLoading] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState("");
     const [isError, setIsError] = useState("");
+
+    useEffect(() => {
+        localStorage.setItem("watched", JSON.stringify(watched));
+    }, [watched]);
 
     useEffect(() => {
         const controller = new AbortController();
@@ -270,7 +279,7 @@ function SelectedMovie({
     const {
         imdbID,
         Title: title,
-        Year: year,
+        // Year: year,
         Poster: poster,
         Runtime: runtime,
         imdbRating,
@@ -378,6 +387,7 @@ function SelectedMovie({
                                         <button
                                             onClick={() =>
                                                 addToMovieList({
+                                                    watched,
                                                     imdbRating,
                                                     rate,
                                                     runtime,
@@ -417,7 +427,8 @@ function addToMovieList({
     title,
     imdbID,
     setWatched,
-    setSelectedMovie
+    setSelectedMovie,
+    watched
 }) {
     const rumtimes = Number(runtime.slice(0, 3));
 
