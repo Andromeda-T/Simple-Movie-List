@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import StarRating from "./StarRating";
 
 const average = (arr) =>
@@ -14,7 +14,7 @@ export default function App() {
         const stored = localStorage.getItem("watched");
         return stored ? JSON.parse(stored) : [];
     });
-    
+
     const [isLoading, setIsLoading] = useState(false);
     const [selectedMovie, setSelectedMovie] = useState("");
     const [isError, setIsError] = useState("");
@@ -142,13 +142,13 @@ function RenderApiMovieBox({ movies, setSelectedMovie }) {
 
 function Summary({ watched }) {
     const avgImdbRating = Math.round(
-        average(watched.map((movie) => movie.imdbRating))
+        average(watched.map((movie) => Number(movie.imdbRating)))
     );
     const avgUserRating = Math.round(
         average(watched.map((movie) => movie.rate))
     );
     const avgRuntime = Math.round(
-        average(watched.map((movie) => movie.runtimes))
+        average(watched.map((movie) => movie.numRuntime))
     );
     return (
         <div className="summary">
@@ -179,7 +179,7 @@ function MovieList({ watched, setWatched }) {
     return (
         <ul className="list list-movies">
             {watched.map(
-                ({ imdbID, title, poster, imdbRating, rate, runtimes }) => (
+                ({ imdbID, title, poster, imdbRating, rate, numRuntime }) => (
                     <li key={imdbID}>
                         <img src={poster} alt={`${title} poster`} />
                         <h3>{title}</h3>
@@ -194,7 +194,7 @@ function MovieList({ watched, setWatched }) {
                             </p>
                             <p>
                                 <span>⏳</span>
-                                <span>{runtimes} min</span>
+                                <span>{numRuntime} min</span>
                             </p>
                         </div>
                         <button
@@ -213,6 +213,24 @@ function MovieList({ watched, setWatched }) {
 }
 
 function Search({ query, setQuery }) {
+    const searchBar = useRef(null);
+
+    useEffect(() => {
+        const callBack = function (e) {
+            if (document.activeElement === searchBar.current) return;
+
+            if (e.code === "Enter") {
+                console.log("sex ? ");
+                searchBar.current.focus();
+                setQuery("");
+            }
+        };
+        searchBar.current.focus();
+        document.addEventListener("keydown", callBack);
+
+        return () => document.removeEventListener("keydown", callBack);
+    }, [setQuery]);
+
     return (
         <input
             className="search"
@@ -220,6 +238,7 @@ function Search({ query, setQuery }) {
             placeholder="Search movies..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            ref={searchBar}
         />
     );
 }
@@ -279,7 +298,7 @@ function SelectedMovie({
     const {
         imdbID,
         Title: title,
-        // Year: year,
+        Year: year,
         Poster: poster,
         Runtime: runtime,
         imdbRating,
@@ -430,11 +449,13 @@ function addToMovieList({
     setSelectedMovie,
     watched
 }) {
-    const rumtimes = Number(runtime.slice(0, 3));
+    const numRuntime = runtime >= 0 ? Number(runtime.replace(" min", "")) : 0;
+
+    console.log(numRuntime);
 
     setWatched((watched) => [
         ...watched,
-        { imdbRating, rate, rumtimes, poster, title, imdbID }
+        { imdbRating, rate, numRuntime, poster, title, imdbID }
     ]);
 
     setSelectedMovie(null);
