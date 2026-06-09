@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMovies } from "./useMovies";
 import { useLocalStorage } from "./useLocalStorage";
+import { useKey } from "./useKey";
 import StarRating from "./StarRating";
 
 const average = (arr) =>
@@ -178,14 +179,15 @@ function MovieList({ watched, setWatched }) {
 function Search({ query, setQuery }) {
     const searchBar = useRef(null);
 
+    useKey("Enter", () => {
+        if (document.activeElement === searchBar.current) return;
+        searchBar.current.focus();
+        setQuery("");
+    });
+
     useEffect(() => {
         const callBack = function (e) {
-            if (document.activeElement === searchBar.current) return;
-
             if (e.code === "Enter") {
-                console.log("sex ? ");
-                searchBar.current.focus();
-                setQuery("");
             }
         };
         searchBar.current.focus();
@@ -275,13 +277,9 @@ function SelectedMovie({
     const isWatched = Boolean(watchedMovie);
     const isWatchedRating = watchedMovie?.rate;
 
-    // const stars = useRef(0);
-
-    // useEffect(() => {
-    //     if (rate) stars.current++;
-
-    //     console.log(stars);
-    // }, [rate]);
+    const onCloseMovie = function () {
+        setSelectedMovie(null);
+    };
 
     useEffect(() => {
         async function fetchMovies() {
@@ -320,16 +318,7 @@ function SelectedMovie({
         };
     }, [title]);
 
-    useEffect(() => {
-        const callBack = (e) => {
-            if (e.code === "Escape") {
-                setSelectedMovie(null);
-            }
-        };
-        document.addEventListener("keydown", callBack);
-        return () => document.removeEventListener("keydown", callBack);
-    }, [setSelectedMovie]);
-
+    useKey("Escape", onCloseMovie);
     return (
         <>
             {isLoading && <Loader />}
